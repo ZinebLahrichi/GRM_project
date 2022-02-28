@@ -47,10 +47,7 @@ if __name__ == '__main__':
     else:
         for i in range(1, NB_CLASSES + 1):        
             img_scrb = plt.imread(input_dir + img_name + '_' + str(i) + '.png')[:, :, 0]
-            print(img_scrb)
             scribbles[img_scrb == 0] = i
-            print("oui")
-            print(scribbles)
     X = []
     Y = []
     I = []

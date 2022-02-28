@@ -193,7 +193,6 @@ def optimize_primal_dual(f, g, max_iter = 1000, theta_ini = None):
     
     # Initialization of theta
     if theta_ini is None:
-        print('Random theta_ini')
         theta_ini = np.random.rand(*f.shape)
 
     theta = theta_ini
