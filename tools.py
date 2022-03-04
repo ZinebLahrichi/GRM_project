@@ -1,32 +1,31 @@
 import numpy as np
-from tqdm import tqdm
+import tqdm
 import matplotlib.pyplot as plt
 import os
 from array2gif import write_gif
 
 
 def double(x):
-    '''
+    """
         Trick to duplicate the array x
         Input shape is x.shape
         Output shape is (*x.shape, 2)
-    '''
-    
+    """
     return x.dot(np.ones((x.shape[1], x.shape[1], 2)))
 
 
 def compute_g(img, gamma=5):
-    '''
+    """
         Computes the function g(x) = exp(-gamma * abs(grad(I)))
-    '''
-    
+    """
+
     h, w, _ = img.shape
     edge = np.zeros((h, w))
 
     for color in range(3):
         grad = forward_gradient(img[:, :, color])
         edge += np.linalg.norm(grad, ord=2, axis=2) ** 2
-    
+
     g = np.exp(-gamma * np.sqrt(edge))
 
     return g
@@ -58,7 +57,7 @@ def backward_divergence(grad):
     ## :param grad: numpy array [NxMx2], array with the same dimensions as the gradient of the image to denoise.
     :return: numpy array [NxM], backward divergence 
     """
-    
+
     h, w = grad.shape[:2]
     div = np.zeros((h, w), grad.dtype)  # Allocate divergence array
     # Horizontal direction
@@ -81,44 +80,41 @@ def backward_divergence(grad):
 def compute_dual_energy(f, div, lmbd):
     nb_classes = f.shape[0]
     mini = np.zeros(f.shape)
-        
+
     for k in range(nb_classes):
-        mini[k] = (1/lmbd) * f[k] - div[k]
-            
+        mini[k] = (1 / lmbd) * f[k] - div[k]
+
     return np.sum(np.min(mini, axis=0))
 
 
 def compute_primal_energy(theta, f, g, lmbd):
-    
     nb_classes = f.shape[0]
-        
+
     grad = [forward_gradient(theta[k]) for k in range(nb_classes)]
     norm_grad = np.linalg.norm(grad, axis=3)
-    energy = np.sum([(1/lmbd) * theta[k] * f[k] - norm_grad[k] * g
-                            for k in range(nb_classes)])
+    energy = np.sum([(1 / lmbd) * theta[k] * f[k] - norm_grad[k] * g
+                     for k in range(nb_classes)])
 
     return energy
 
 
 def compute_theta(seg_class):
-    
     nb_classes = len(np.unique(seg_class))
     theta = np.zeros((nb_classes, *seg_class.shape))
 
     for k in range(nb_classes):
-        theta[k] = (seg_class == k)*1
+        theta[k] = (seg_class == k) * 1
 
     return theta
 
-def save_gif(hist_theta, fps=10):
 
-    images = [np.argmax(t, axis=0)*255 for t in hist_theta]
-    dataset = [ np.array([t, t, t]) for t in images]
-    
+def save_gif(hist_theta, fps=10):
+    images = [np.argmax(t, axis=0) * 255 for t in hist_theta]
+    dataset = [np.array([t, t, t]) for t in images]
+
     script_dir = os.path.dirname(__file__)
     results_dir = os.path.join(script_dir, 'output/')
-    write_gif(dataset, results_dir + 'result.gif', fps=fps)
-
+    write_gif(np.clip(dataset, 0, 255), results_dir + 'result.gif', fps=fps)
 
 
 def euclidean_proj_simplex(v, s=1):
@@ -157,7 +153,7 @@ def euclidean_proj_simplex(v, s=1):
     u = np.sort(v)[::-1]
     cssv = np.cumsum(u)
     # get the number of > 0 components of the optimal solution
-    rho = np.nonzero(u * np.arange(1, n+1) > (cssv - s))[0][-1]
+    rho = np.nonzero(u * np.arange(1, n + 1) > (cssv - s))[0][-1]
     # compute the Lagrange multiplier associated to the simplex constraint
     theta = (cssv[rho] - s) / (rho + 1.0)
     # compute the projection by thresholding v using theta
@@ -166,31 +162,23 @@ def euclidean_proj_simplex(v, s=1):
 
 
 def plot_results(primal, dual):
-    
     plt.figure()
-    plt.subplot(1, 2,1)
+    plt.subplot(1, 2, 1)
     plt.plot(primal, label='Primal energy')
     plt.plot(dual, label='Dual energy')
     plt.legend()
-    
-    #plt.subplot(1, 2, 2)
-    #plt.plot(gap, label='Gap')
-    #plt.legend()
-    #plt.show()
 
 
-def optimize_primal_dual(f, g, max_iter = 1000, theta_ini = None):
-
+def optimize_primal_dual(f, g, max_iter=1000, theta_ini=None, lmbd=100):
     nb_classes, h, w = f.shape
     tau_dual = 0.5
     tau_primal = 0.25
-    lmbd = 100
     smooth_factor = 0.7
-    
+
     ####################
     ## INITIALIZATION ##
     ####################
-    
+
     # Initialization of theta
     if theta_ini is None:
         theta_ini = np.random.rand(*f.shape)
@@ -199,14 +187,14 @@ def optimize_primal_dual(f, g, max_iter = 1000, theta_ini = None):
     theta_tilde = np.copy(theta)
     projected_theta = np.zeros(f.shape)
     hist_theta = np.zeros((max_iter, *f.shape))
-    
+
     # Dual variables and divergence results
     div = np.zeros(f.shape)
-    
+
     xi = np.zeros((*f.shape, 2))
     for k in range(nb_classes):
         xi[k] = forward_gradient(theta_tilde[k])
-    
+
     # Energies
     dual = []
     primal = []
@@ -217,80 +205,77 @@ def optimize_primal_dual(f, g, max_iter = 1000, theta_ini = None):
     results_dir = os.path.join(script_dir, 'output/')
 
     ##############################
-    ## PRIMAL - DUAL ITERATIONS ##
+    # PRIMAL - DUAL ITERATIONS
     ##############################
-    
+
     it = 0
     stop = False
-    
-    while not stop and it < max_iter:
-        
-        theta_old = theta
-        
-        ##########################
-        ## DUAL UPDATE - ASCENT ##
-        ##########################
-        
-        for k in range(nb_classes):
 
-            xi[k] = xi[k] + tau_dual * forward_gradient(theta_tilde[k])
-        
-            ######################
-            ## PROJECTION ON Kg ##
-            ######################
-        
-            norm_xi_k = np.linalg.norm(xi[k], ord=2, axis=2)
-            mask = np.where(np.abs(norm_xi_k) > g/2)
-            xi[k][mask] =  double(g)[mask]/2 * xi[k][mask] / double(norm_xi_k)[mask]
-        
-        
-        #############################
-        ## PRIMAL UPDATE - DESCENT ##
-        #############################
-        
+    while not stop and it < max_iter:
+
+        theta_old = theta
+
+        ##########################
+        # DUAL UPDATE - ASCENT
+        ##########################
+
         for k in range(nb_classes):
-            
+            xi[k] = xi[k] + tau_dual * forward_gradient(theta_tilde[k])
+
+            ######################
+            # PROJECTION ON Kg
+            ######################
+
+            norm_xi_k = np.linalg.norm(xi[k], ord=2, axis=2)
+            mask = np.where(np.abs(norm_xi_k) > g / 2)
+            xi[k][mask] = double(g)[mask] / 2 * xi[k][mask] / double(norm_xi_k)[mask]
+
+        #############################
+        # PRIMAL UPDATE - DESCENT
+        #############################
+
+        for k in range(nb_classes):
             div[k] = backward_divergence(xi[k])
-            assert(np.count_nonzero(div[k])>0) # Safety check
-    
-        theta = theta + tau_primal * (div - (1/lmbd) * f)
-        
+            assert (np.count_nonzero(div[k]) > 0)  # Safety check
+
+        theta = theta + tau_primal * (div - (1 / lmbd) * f)
+
         ###############################
-        ## PROJECTION ON THE SIMPLEX ##
+        # PROJECTION ON THE SIMPLEX
         ###############################
-        
+
         for i in range(h):
             for j in range(w):
                 projected_theta[:, i, j] = euclidean_proj_simplex(theta[:, i, j])
 
         theta = projected_theta
-        
+
         #########################
         ## OVERRELAXATION STEP ##
         #########################
-        
+
         theta_tilde = theta + smooth_factor * (theta - theta_old)
-        
+
         ######################
         ## COMPUTE ENERGIES ##
         ######################
-        
+
         dual.append(compute_dual_energy(f, div, lmbd))
         primal.append(compute_primal_energy(theta_tilde, f, g, lmbd))
         gap.append(primal[-1] - dual[-1])
-        
-        print('Dual energy = {} ; Primal Energy = {} ; Gap = {} ; Iteration = {}'.format(dual[-1], primal[-1], gap[-1], it))
-        
+
+        print('Dual energy = {} ; Primal Energy = {} ; Gap = {} ; Iteration = {}'.format(dual[-1], primal[-1], gap[-1],
+                                                                                         it))
+
         # Store theta in history
         hist_theta[it] = theta
-        
+
         # TERMINATION CRITERIA
-        
-        stop = (it > 10) and (np.abs(dual[-1]-dual[-2]) < 0.001 * np.abs(dual[-1]))
-        
+
+        stop = (it > 10) and (np.abs(dual[-1] - dual[-2]) < 0.001 * np.abs(dual[-1]))
+
         filepath = results_dir + 'state_' + str(it) + '.png'
-        plt.imsave(filepath, np.argmax(hist_theta[it], axis=0)*255, cmap='gray')
-    
+        plt.imsave(filepath, np.argmax(hist_theta[it], axis=0) * 255, cmap='gray')
 
         it += 1
 
