@@ -1,3 +1,5 @@
+from tqdm import tqdm
+
 from tools import *
 from scipy.ndimage import gaussian_filter
 
