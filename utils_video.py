@@ -2,6 +2,16 @@ from cv2 import imread
 from tools import *
 from tqdm import tqdm
 from os.path import isfile
+from skimage.transform import resize
+
+shape = (240,480)
+
+def open_img(path, shape = shape):
+    img = imread(path)
+    if shape == None:
+        return img
+    return resize(img, shape)
+
 
 def get_XYIT(ind_scribbles, input_dir, img_name, NB_CLASSES):
     X = []  # coordinates scribble points for each label (x axis)
@@ -15,10 +25,10 @@ def get_XYIT(ind_scribbles, input_dir, img_name, NB_CLASSES):
         I.append(np.array([]))
         T.append(np.array([]))
     for f in ind_scribbles:
-        img = imread(input_dir + img_name + f + '.jpg')
+        img = open_img(input_dir + img_name + f + '.jpg')
         scribbles = np.zeros(img.shape[:2])
         for i in range(1, NB_CLASSES + 1):
-            img_scribble = plt.imread(input_dir + img_name + f + '_' + str(i) + '.png')
+            img_scribble = open_img(input_dir + img_name + f + '_' + str(i) + '.png')
             img_scribble = np.mean(img_scribble, axis=2)
             scribbles[img_scribble < 0.50] = i
 
@@ -39,7 +49,7 @@ def create_scribble(img, img_name, input_dir, showScribble, NB_CLASSES,color_pal
     scribbles = np.zeros(img.shape[:2])
     if isfile(input_dir + img_name + '_' + str(1) + '.png'):
         for i in range(1, NB_CLASSES + 1):
-            img_scribble = plt.imread(input_dir + img_name + '_' + str(i) + '.png')
+            img_scribble = open_img(input_dir + img_name + '_' + str(i) + '.png')
             img_scribble = np.mean(img_scribble, axis=2)
             scribbles[img_scribble < 0.50] = i
 
