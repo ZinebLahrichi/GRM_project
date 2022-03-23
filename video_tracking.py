@@ -24,13 +24,13 @@ parser.add_argument('--NB_CLASSES', type=int, default= 2,
 # Parameters of the experiment
 # Baseline: alpha=30, sigma=30, LMBD=100, NB_ITERS = 100
 
-showScribble = True
+showScribble = False
 showDistanceMap = True
 showSegmentation = True
-NB_ITERS = 5
+NB_ITERS = 50
 alpha = 30  # Distance parameter: indicates how segmentation is locally sensible to the input scribble
 sigma = 30  # Smoothing parameter: indicates how segmentation depends on color
-tau = 30  # Memory parameter : indicates how segmentation depends on previous frames
+tau = 5  # Memory parameter : indicates how segmentation depends on previous frames
 LMBD = 30  # Regularization parameter:
 eps = 10e-7
 USE_DIST = True
