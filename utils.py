@@ -1,13 +1,50 @@
 from tools import *
 from tqdm import tqdm
+from matplotlib.pyplot import imread
+from skimage.transform import resize
+from default_parameters import color_palette
+from scipy.ndimage import gaussian_filter
 
 
-def create_scribble(img, img_name, input_dir, showScribble, NB_CLASSES,color_palette):
+def open_img(path, shape):
+    img = imread(path)
+    if shape == None:
+        return img
+    return resize(img, shape)
+
+
+def label2rgb(labels, n_class):
+    img2 = np.zeros((labels.shape[0], labels.shape[1], 3))
+    for i in range(0, n_class):
+        img2[labels == i, :] = color_palette[i]
+    return img2
+
+
+def plot_segmentation(labels, n_class):
+    img = label2rgb(labels, n_class)
+    plt.imshow(img)
+    plt.show()
+
+
+def plot_segmentation_and_gt(labels, truth, n_class):
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    ax1.imshow(label2rgb(labels, n_class))
+    ax2.imshow(label2rgb(truth, n_class))
+    plt.show()
+
+
+def read_ground_truth(filepath, shape):
+    with open(filepath) as f:
+        gt = np.array([list(map(int, line.rstrip().split(' '))) for line in f.readlines()]).reshape(shape)
+    return gt
+
+
+def create_scribble(img, img_name, input_dir, showScribble, NB_CLASSES):
     scribbles = np.zeros(img.shape[:2])
     for i in range(1, NB_CLASSES + 1):
-        img_scribble = plt.imread(input_dir + img_name + '_' + str(i) + '.png')
+        img_scribble = open_img(input_dir + img_name + '_' + str(i) + '.jpg', img.shape)
         img_scribble = np.mean(img_scribble, axis=2)
-        scribbles[img_scribble < 0.50] = i
+        scribbles[img_scribble < 0.5] = i
 
     X = []  # coordinates scribble points for each label (x axis)
     Y = []  # coordinates scribble points for each label (y axis)
@@ -110,5 +147,17 @@ def compute_probability(img, scribbles, X, Y, I, dists, alpha, eps, sigma, USE_D
         for j in range(0, img.shape[1]):
             seg_class[i, j] = np.argmax(P[:, i, j])
 
-
     return seg_class, P, f
+
+
+def compute_segmentation(img, scribbles, X, Y, I, dists, alpha, eps, sigma, USE_DIST, USE_COLOR, MARGINAL, NB_CLASSES, NB_ITERS, LMBD):
+
+    seg_class, P, f = compute_probability(img, scribbles, X, Y, I, dists, alpha, eps, sigma, USE_DIST, USE_COLOR, MARGINAL, NB_CLASSES)
+
+    # Run the optimization
+    g = compute_g(img)
+    smooth_seg_class = np.around(gaussian_filter(seg_class, 1))
+    theta_ini = compute_theta(smooth_seg_class)
+    primal, dual, hist_theta = optimize_primal_dual(f, g, NB_ITERS, theta_ini, lmbd=LMBD)
+
+    return  np.argmax(hist_theta[-1], axis=0)
