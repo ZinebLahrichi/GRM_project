@@ -2,22 +2,26 @@ import cv2
 import numpy as np
 from tools import *
 from tqdm import tqdm
+from scipy.ndimage import gaussian_filter
+from default_parameters import color_palette
 
 
-def build_gabor_kernels():
+def build_gabor_kernels(number_of_orientations = 10):
     # Building some gabor kernels to filter image
 
     filters = []
     ksize = 40
-    orientations = [i*36.6 for i in range(10)]
-    for rotation in orientations:
-        kernel = cv2.getGaborKernel((ksize, ksize), 4.25, rotation,3, 0.5, 0, ktype=cv2.CV_32F)
-        filters.append(kernel)
+    if number_of_orientations!=0:
+        orientations = [i*int(360/number_of_orientations) for i in range(number_of_orientations)]
+        for rotation in orientations:
+            kernel = cv2.getGaborKernel((ksize, ksize), 4.25, rotation,3, 0.5, 0, ktype=cv2.CV_32F)
+            filters.append(kernel)
+        return filters
+    else:
+        return([])
 
-    return filters
 
-
-def compute_texture_info(image):
+def compute_texture_info(image, number_of_texture_filters_to_use = 10):
     """
     return an image with the first 3 channels corresponding to RGB channels
     and extra 9 channels for texture information
@@ -25,7 +29,7 @@ def compute_texture_info(image):
     rows, cols, channels = image.shape
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    gaborKernels = build_gabor_kernels()
+    gaborKernels = build_gabor_kernels(number_of_texture_filters_to_use)
     texture = np.zeros((rows, cols, len(gaborKernels)+3))
 
     for (i, kernel) in enumerate(gaborKernels):
@@ -149,3 +153,35 @@ def compute_probability(img, scribbles, X, Y, I, dists, alpha, eps, sigma, USE_D
 
 
     return seg_class, P, f
+
+def compute_segmentation(img, scribbles, X, Y, I, dists, alpha, eps, sigma, USE_DIST, USE_COLOR, MARGINAL, NB_CLASSES, NB_ITERS, LMBD):
+
+    seg_class, P, f = compute_probability(img, scribbles, X, Y, I, dists, alpha, eps, sigma, USE_DIST, USE_COLOR, MARGINAL, NB_CLASSES)
+
+    # Run the optimization
+    g = compute_g(img)
+    smooth_seg_class = np.around(gaussian_filter(seg_class, 1))
+    theta_ini = compute_theta(smooth_seg_class)
+    primal, dual, hist_theta = optimize_primal_dual(f, g, NB_ITERS, theta_ini, lmbd=LMBD)
+
+    return  np.argmax(hist_theta[-1], axis=0)
+
+
+def label2rgb(labels, n_class):
+    img2 = np.zeros((labels.shape[0], labels.shape[1], 3))
+    for i in range(0, n_class):
+        img2[labels == i, :] = color_palette[i]
+    return img2
+
+
+def plot_segmentation(labels, n_class):
+    img = label2rgb(labels, n_class)
+    plt.imshow(img)
+    plt.show()
+
+    
+def plot_segmentation_and_image(labels, original_image, n_class):
+    img = label2rgb(labels, n_class)
+    plt.imshow(original_image)
+    plt.imshow(img, alpha = 0.5)
+    plt.show()
