@@ -1,9 +1,8 @@
 from tqdm import tqdm
 
 from tools import *
-from scipy.ndimage import gaussian_filter
 
-from utils_texture import compute_texture_info, compute_probability, create_scribble, compute_distance
+from utils_texture import compute_texture_info, compute_segmentation, create_scribble, compute_distance, plot_segmentation_and_image
 
 
 
@@ -30,7 +29,7 @@ color_palette = [[0, 1, 1], [1, 0, 0], [0, 0, 1], [0, 1, 0], [1, 1, 1], [0.5, 0.
 
 if __name__ == '__main__':
 
-    img_name = 'chat'
+    img_name = 'car'
 
     original_img = plt.imread(input_dir + img_name + '.jpg')
 
@@ -44,37 +43,18 @@ if __name__ == '__main__':
     scribbles, X,Y,I = create_scribble(img, img_name, input_dir, showScribble, NB_CLASSES,color_palette)
 
 
-
     # Compute shortest path to scribble (rho)
     print('>> Computing shortest path to scribble...')
     n, m = img.shape[:2]
     dists  = compute_distance(img, X, Y, NB_CLASSES, showDistanceMap)
 
     print('>> Computing segmentation...')
-
-    seg_class,P,f = compute_probability(img, scribbles, X, Y, I, dists, alpha, eps, sigma, USE_DIST, USE_COLOR, MARGINAL, NB_CLASSES)
-
-
-    # Run the optimization
-    g = compute_g(img)
-    smooth_seg_class = np.around(gaussian_filter(seg_class, 1))
-    theta_ini = compute_theta(smooth_seg_class)
-    primal, dual, hist_theta = optimize_primal_dual(f, g, NB_ITERS, theta_ini, lmbd=LMBD)
-
+    best = compute_segmentation(img, scribbles, X, Y, I, dists, alpha, eps, sigma, USE_DIST, USE_COLOR, MARGINAL, NB_CLASSES, NB_ITERS, LMBD)
     print('... Done')
+
 
     # Display results
 
     if showSegmentation:
-
-        # Final segmentation
-        best = np.argmax(hist_theta[-1], axis=0)
         plt.figure(figsize=(14, 12))
-
-        # plt.subplot(1, NB_CLASSES, 1)
-        img2 = np.zeros(original_img.shape)
-        for i in range(0, NB_CLASSES):
-            img2[best == i, :] = color_palette[i]
-
-        plt.imshow(img2)
-        plt.show()
+        plot_segmentation_and_image(best, original_img, 2)

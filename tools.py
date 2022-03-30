@@ -277,9 +277,28 @@ def optimize_primal_dual(f, g, max_iter=1000, theta_ini=None, lmbd=100):
         plt.imsave(filepath, np.argmax(hist_theta[it], axis=0) * 255, cmap='gray')
 
         it += 1
-
+    hist_theta = hist_theta[:it]
     print('>> Saving gif...')
-    save_gif(hist_theta[:it])
+    save_gif(hist_theta)
     print('... Done')
 
     return primal, dual, hist_theta
+
+
+
+def dice(ground_truth, best):
+    """
+    returns the dice metric only for two objects
+    objects needs to be set to 0
+    background sets to 1
+    """
+
+    XuY =  np.sum((ground_truth+best==0))
+    X = np.sum(ground_truth==0)
+    Y = np.sum(best==0)
+
+    dice = np.round(100*2*XuY/(X+Y), 2)
+
+    return dice
+
+
