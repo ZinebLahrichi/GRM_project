@@ -274,12 +274,7 @@ def optimize_primal_dual(f, g, max_iter=1000, theta_ini=None, lmbd=100):
         stop = (it > 10) and (np.abs(dual[-1] - dual[-2]) < 0.001 * np.abs(dual[-1]))
 
         filepath = results_dir + 'state_' + str(it) + '.png'
-        plt.imsave(filepath, np.argmax(hist_theta[it], axis=0) * 255, cmap='gray')
 
         it += 1
-
-    print('>> Saving gif...')
-    save_gif(hist_theta[:it])
-    print('... Done')
 
     return primal, dual, hist_theta
