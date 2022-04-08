@@ -33,18 +33,29 @@ def plot_segmentation_and_gt(labels, truth, n_class):
     plt.show()
 
 
+def plot_segmentation_and_gt_and_scribbles(labels, truth, img,  scribbles, n_class):
+    for i in range(1, n_class + 1):
+        img[scribbles == i, :] = color_palette[i]
+
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
+    ax1.imshow(label2rgb(labels, n_class))
+    ax2.imshow(label2rgb(truth, n_class))
+    ax3.imshow(img)
+    plt.show()
+
+
 def read_ground_truth(filepath, shape):
     with open(filepath) as f:
         gt = np.array([list(map(int, line.rstrip().split(' '))) for line in f.readlines()]).reshape(shape)
     return gt
 
 
-def create_scribble(img, img_name, input_dir, showScribble, NB_CLASSES):
+def create_scribble(img, img_name, input_dir, showScribble, NB_CLASSES, width=0.5):
     scribbles = np.zeros(img.shape[:2])
     for i in range(1, NB_CLASSES + 1):
         img_scribble = open_img(input_dir + img_name + '_' + str(i) + '.jpg', img.shape)
         img_scribble = np.mean(img_scribble, axis=2)
-        scribbles[img_scribble < 0.5] = i
+        scribbles[img_scribble < width] = i
 
     X = []  # coordinates scribble points for each label (x axis)
     Y = []  # coordinates scribble points for each label (y axis)
@@ -63,7 +74,9 @@ def create_scribble(img, img_name, input_dir, showScribble, NB_CLASSES):
         img2 = np.zeros(img.shape)
         for i in range(1, NB_CLASSES + 1):
             img2[scribbles == i, :] = color_palette[i]
-        plt.imshow(img2)
+
+        plt.imshow(img / 255)
+        plt.imshow(img2, alpha=0.5)
 
         plt.title("classes-scribbles")
         plt.show()
