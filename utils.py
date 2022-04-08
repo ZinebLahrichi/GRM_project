@@ -39,12 +39,12 @@ def read_ground_truth(filepath, shape):
     return gt
 
 
-def create_scribble(img, img_name, input_dir, showScribble, NB_CLASSES):
+def create_scribble(img, img_name, input_dir, showScribble, NB_CLASSES, width=0.5):
     scribbles = np.zeros(img.shape[:2])
     for i in range(1, NB_CLASSES + 1):
         img_scribble = open_img(input_dir + img_name + '_' + str(i) + '.jpg', img.shape)
         img_scribble = np.mean(img_scribble, axis=2)
-        scribbles[img_scribble < 0.5] = i
+        scribbles[img_scribble < width] = i
 
     X = []  # coordinates scribble points for each label (x axis)
     Y = []  # coordinates scribble points for each label (y axis)

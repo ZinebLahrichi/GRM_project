@@ -113,7 +113,6 @@ def save_gif(hist_theta, fps=10):
 
     script_dir = os.path.dirname(__file__)
     results_dir = os.path.join(script_dir, 'output/')
-    write_gif(np.clip(dataset, 0, 255), results_dir + 'result.gif', fps=fps)
 
 
 def euclidean_proj_simplex(v, s=1):
@@ -272,9 +271,6 @@ def optimize_primal_dual(f, g, max_iter=1000, theta_ini=None, lmbd=100):
         # TERMINATION CRITERIA
 
         stop = (it > 10) and (np.abs(dual[-1] - dual[-2]) < 0.001 * np.abs(dual[-1]))
-
-        filepath = results_dir + 'state_' + str(it) + '.png'
-        plt.imsave(filepath, np.argmax(hist_theta[it], axis=0) * 255, cmap='gray')
 
         it += 1
     hist_theta = hist_theta[:it]

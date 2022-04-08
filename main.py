@@ -29,7 +29,7 @@ if __name__ == '__main__':
         if showGroundTruth:
             ground_truth_filepath = input_dir + img_name + '_layers.txt'
             gt = read_ground_truth(ground_truth_filepath, default_shape)
-            plot_segmentation_and_gt(best, gt, 6)
+            plot_segmentation_and_gt(best, gt, NB_CLASSES)
 
         else:
             plt.figure(figsize=(14, 12))
