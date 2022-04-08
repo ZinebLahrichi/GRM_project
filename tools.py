@@ -35,8 +35,8 @@ def forward_gradient(im):
     Function to compute the forward gradient of the image I.
     Definition from: http://www.ipol.im/pub/art/2014/103/, p208
     :param im: numpy array [MxN], input image
-    :return: numpy array [MxNx2], gradient of the input image, the first channel is the horizontal gradient, the second 
-    is the vertical gradient. 
+    :return: numpy array [MxNx2], gradient of the input image, the first channel is the horizontal gradient, the second
+    is the vertical gradient.
     """
 
     h, w = im.shape
@@ -54,7 +54,7 @@ def backward_divergence(grad):
     Function to compute the backward divergence.
     Definition in : http://www.ipol.im/pub/art/2014/103/, p208
     ## :param grad: numpy array [NxMx2], array with the same dimensions as the gradient of the image to denoise.
-    :return: numpy array [NxM], backward divergence 
+    :return: numpy array [NxM], backward divergence
     """
 
     h, w = grad.shape[:2]
@@ -274,7 +274,31 @@ def optimize_primal_dual(f, g, max_iter=1000, theta_ini=None, lmbd=100):
         stop = (it > 10) and (np.abs(dual[-1] - dual[-2]) < 0.001 * np.abs(dual[-1]))
 
         filepath = results_dir + 'state_' + str(it) + '.png'
+        plt.imsave(filepath, np.argmax(hist_theta[it], axis=0) * 255, cmap='gray')
 
         it += 1
+    hist_theta = hist_theta[:it]
+    print('>> Saving gif...')
+    save_gif(hist_theta)
+    print('... Done')
 
     return primal, dual, hist_theta
+
+
+
+def dice(ground_truth, best):
+    """
+    returns the dice metric only for two objects
+    objects needs to be set to 0
+    background sets to 1
+    """
+
+    XuY =  np.sum((ground_truth+best==0))
+    X = np.sum(ground_truth==0)
+    Y = np.sum(best==0)
+
+    dice = np.round(100*2*XuY/(X+Y), 2)
+
+    return dice
+
+
